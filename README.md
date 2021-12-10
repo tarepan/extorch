@@ -1,2 +1,4 @@
 # extorch
-Extended PyTorch modules
+Extended PyTorch modules.
+
+- Conv1dEx: support ***CausalConv***
