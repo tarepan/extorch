@@ -13,6 +13,7 @@ class Conv1dEx(nn.Conv1d):
     CausalConv + Dilation is NOT yet supported.
     """
     def __init__(self, *args, padding=0, causal:bool=False, **kwargs):
+        """All arguments of `nn.Conv1d`, and new `causal` option"""
         kernel_size = args[2]
         self.input_padding = (kernel_size-1, 0) if causal else (0, 0)
         kernel_padding = 0 if causal else padding
