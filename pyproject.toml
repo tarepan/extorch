@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "extorch"
-version = "0.0.1"
+version = "0.0.2"
 description = "Extended PyTorch modules"
 authors = ["Tarepan"]
 readme = "README.md"
