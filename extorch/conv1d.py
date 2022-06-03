@@ -1,6 +1,7 @@
 "Extended Conv1d"
 
 from warnings import warn
+from typing import Union, Tuple
 
 from torch import nn
 import torch.nn.functional as F
@@ -12,7 +13,13 @@ class Conv1dEx(nn.Conv1d):
     CausalConv + Stride is (naively) supported.
     CausalConv + Dilation is NOT yet supported.
     """
-    def __init__(self, *args, padding=0, padding_mode:str="zeros", causal:bool=False, **kwargs):
+    def __init__(self,
+        *args,
+        padding: Union[str, int, Tuple] = 0,
+        padding_mode: str = "zeros",
+        causal: bool = False,
+        **kwargs
+    ):
         """All arguments of `nn.Conv1d`, and new `causal` option"""
 
         # Conv1d `kernel_size` could be positional or named.
