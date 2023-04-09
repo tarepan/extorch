@@ -34,7 +34,11 @@ class Conv1dEx(nn.Conv1d):
             self._input_padding = (kernel_size-1, 0)
             conv_padding = 0
             if padding is not 0:
-                warn(f"Conv1dEx: `padding={padding}` is ignored, now using `causal` mode.")
+                if padding == "same":
+                    # Automatic 'same' padding match explicit argument
+                    pass
+                else:
+                    warn(f"Conv1dEx: `padding={padding}` is ignored, now using `causal` mode.")
             if padding_mode is not "zeros":
                 raise Exception("Currently Conv1dEx support only padding_mode=zeros for causal mode.")
         else:
