@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "extorch"
-version = "0.1.0"
+version = "0.2.0"
 description = "Extended PyTorch modules"
 authors = ["Tarepan"]
 readme = "README.md"
@@ -10,7 +10,7 @@ repository = "https://github.com/tarepan/extorch"
 python = "^3.7"
 
 [tool.poetry.dev-dependencies]
-numpy = ">=1.17"
+numpy = ">=1.22.4"
 pytest = "^6.2.5"
 
 [build-system]

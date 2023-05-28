@@ -2,7 +2,7 @@
 
 import numpy as np
 import torch
-
+from torch import tensor, equal
 from extorch import Conv1dEx
 
 
@@ -56,3 +56,21 @@ def test_conv1dex_with_stride_input_odd():
         ## Test
         assert all((o_normal.numpy() == np.array([[[13., 33., 23.]]]))[0][0])
         assert all((o_causal.numpy() == np.array([[[ 5., 23., 43.]]]))[0][0])
+
+
+def test_conv1dex_dilated():
+    """Conv1dEx should support causal convolution with dilation."""
+
+    with torch.no_grad():
+        i = tensor([[[1., 2., 3., 4., 5.,]]])
+        kernel = torch.nn.Parameter(tensor([2., 3., 5.]))
+        conv_normal = Conv1dEx(1, 1, 3, dilation=2,              padding="same", bias=False, padding_mode='zeros')
+        conv_causal = Conv1dEx(1, 1, 3, dilation=2, causal=True, padding="same", bias=False, padding_mode='zeros')
+        conv_normal.weight[0][0] = kernel
+        conv_causal.weight[0][0] = kernel
+
+        o_normal = conv_normal(i)
+        o_causal = conv_causal(i)
+        # Test
+        assert equal(o_normal, tensor([[[18., 26., 36., 16., 21.,]]]))
+        assert equal(o_causal, tensor([[[ 5., 10., 18., 26., 36.,]]]))
