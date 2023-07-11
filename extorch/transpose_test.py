@@ -1,6 +1,6 @@
 import torch
 
-from extorch import Transpose
+from .transpose import Transpose
 
 
 def test_transpose():

@@ -1,6 +1,6 @@
 "Extended Conv1d"
 
-from warnings import warn
+from typing import Literal, Any
 
 from torch import Tensor, nn
 import torch.nn.functional as F
@@ -14,53 +14,68 @@ class Conv1dEx(nn.Conv1d):
     Causal + Stride   + Dilation is supported.
     """
     def __init__(self,
-        *args,
-        padding: str | int | tuple[int, int] = 0,
-        padding_mode: str = "zeros",
-        causal: bool = False,
-        **kwargs
+        in_channels:  int,
+        out_channels: int,
+        kernel_size:  int,
+        *args:        Any,
+        stride:       int  = 1,
+        padding: Literal["same", "valid", "scale"] | int | tuple[int] = 0,
+        dilation:     int  = 1,
+        groups:       int  = 1,
+        bias:         bool = True,
+        padding_mode: str  = "zeros",
+        device             = None,
+        dtype              = None,
+        causal:       bool = False,
     ):
         """All arguments of `nn.Conv1d`, and new `causal` option"""
 
-        # Conv1d `kernel_size` could be positional or named.
-        #   `nn.Conv1d(in_channels, out_channels, kernel_size, stride=1, ...)`
-        kernel_size: int = args[2] if len(args) >= 3 else kwargs["kernel_size"]
-        if len(args) >= 4:
-            raise RuntimeError("Currently Conv1dEx needs named argument usage for stride and subsequents.")
+        # Validation
+        if len(args) > 0:
+            raise RuntimeError("Conv1dEx needs named arguments for stride and subsequents.")
+
+        # Validation
+        if (stride > 1) and (padding == "same"):
+            raise RuntimeError("Convolution with stride>1 results in len(ipt) > len(opt), so `padding == 'same'` is not permitted.")
 
         # input_padding: Padding during Conv1dEx forward explicitly
         # conv_padding:  Padding in nn.Conv1d internally
+        padding_total: int = (kernel_size - 1) * dilation
         if causal:
-            # Causal + Dilation
-            if ("dilation" in kwargs) and (kwargs["dilation"] > 1):
-                dilation: int = kwargs["dilation"]
-                self._input_padding = ((kernel_size - 1) * dilation, 0)
-
-                # Causal + Dilation + Stride
-                if ("stride" in kwargs) and (kwargs["stride"] > 1):
-                    raise RuntimeError("Causal + Dilation + Stride is not supported yet.")
-            # Causal
-            else:
-                self._input_padding = (kernel_size - 1, 0)
-
-            # Resolve (conflicted) manual padding arguments
-            conv_padding = 0
-            if padding != 0:
-                if padding == "same":
-                    # Automatic 'same' padding match explicit argument
-                    pass
-                else:
-                    warn(f"Conv1dEx: `padding={padding}` is ignored, now using `causal` mode.")
-
-            # Validate unsupported arugments
+            # Validation
+            ## padding amount
+            if padding not in ("same", "scale"):
+                raise RuntimeError("Conv1dEx with `causal=True` requires `padding=='same'|'scale'`.")
+                # If len(opt)<len(ipt) by not-same/scale padding, 'causal or not' is determined by opt usage.
+                # For example:
+                #     padding=0 & opt[0] as t=k-1     -> causal conv with dropped opt_t0 ~ opt_t{k-2}
+                #     padding=0 & opt[0] as t=(k-1)/2 -> normal conv with dropped head and tail
+                # `causal` argument explicitly specify the mode, so should avoid this vague interpretation systematically.
+            ## padding mode
             if padding_mode != "zeros":
-                raise RuntimeError("Currently Conv1dEx support only padding_mode=zeros for causal mode.")
+                raise RuntimeError("Currently Conv1dEx support only `padding_mode='zeros'` for causal mode.")
 
+            # Head-only padding - stride do not affect padding
+            self._input_padding = (padding_total, 0)
+            conv_padding = 0
         else:
-            self._input_padding = (0, 0)
-            conv_padding = padding
+            # scale x1 is equal to "same"
+            if padding == "scale" and stride == 1:
+                padding = "same"
 
-        super().__init__(*args, padding=conv_padding, padding_mode=padding_mode, **kwargs)
+            # Manual padding for strided (and dilated) conv
+            if padding == "scale" and stride > 1:
+                padding_l = padding_total // 2
+                padding_r = padding_total - padding_l
+                # NOTE: nn.Conv1d do not support LR-hetero explicit padding
+                self._input_padding = (padding_l, padding_r)
+                conv_padding = 0
+            # Automatic padding for Conv | DilatedConv
+            else:
+                self._input_padding = (0, 0)
+                conv_padding = padding
+
+        super().__init__(in_channels, out_channels, kernel_size, stride, conv_padding, dilation, groups, bias, padding_mode, device, dtype)
 
     def forward(self, x: Tensor):
         """Forward Conv1d with non-uniform padding"""
