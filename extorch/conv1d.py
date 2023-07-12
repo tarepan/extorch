@@ -33,14 +33,12 @@ class Conv1dEx(nn.Conv1d):
         # Validation
         if len(args) > 0:
             raise RuntimeError("Conv1dEx needs named arguments for stride and subsequents.")
-
-        # Validation
         if (stride > 1) and (padding == "same"):
             raise RuntimeError("Convolution with stride>1 results in len(ipt) > len(opt), so `padding == 'same'` is not permitted.")
 
         # input_padding: Padding during Conv1dEx forward explicitly
         # conv_padding:  Padding in nn.Conv1d internally
-        padding_total: int = (kernel_size - 1) * dilation
+        padding_total = (kernel_size - 1) * dilation
         if causal:
             # Validation
             ## padding amount
