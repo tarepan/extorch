@@ -53,7 +53,7 @@ class Conv1dEx(nn.Conv1d):
             if padding_mode != "zeros":
                 raise RuntimeError("Currently Conv1dEx support only `padding_mode='zeros'` for causal mode.")
 
-            # Head-only padding - stride do not affect padding
+            # Head-only padding - stride do not affect padding of causal conv
             self._input_padding = (padding_total, 0)
             conv_padding = 0
         else:
@@ -62,14 +62,22 @@ class Conv1dEx(nn.Conv1d):
                 padding = "same"
 
             # Manual padding for strided (and dilated) conv
-            if padding == "scale" and stride > 1:
+            if padding == "scale":
                 padding_l = padding_total // 2
                 padding_r = padding_total - padding_l
                 # NOTE: nn.Conv1d do not support LR-hetero explicit padding
                 self._input_padding = (padding_l, padding_r)
                 conv_padding = 0
+                # TODO: Implement stride centering option
+            # Automatic 'same' padding for Conv | DilatedConv
+            elif padding == "same":
+                self._input_padding = (0, 0)
+                conv_padding = padding
+                # Kernel centering warning: 'nn.Conv1d's built-in warning' if 'dilation*(kernel_size-1)+1 is even' else pass
+                # In this case, 'padding_l + 1 == padding_r'
             # Automatic padding for Conv | DilatedConv
             else:
+                # padding is 'valid' | int
                 self._input_padding = (0, 0)
                 conv_padding = padding
 
