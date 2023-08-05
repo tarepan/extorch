@@ -30,8 +30,8 @@ def test_convt1dex_no_stride():
     with torch.no_grad():
         ipt = tensor([[[1., 2., 3.]]])
         kernel = nn.Parameter(tensor([2., 3., 5.]))
-        conv_normal = ConvT1dEx(1, 1, 3,                 stride=1, padding="same", bias=False)
-        conv_causal = ConvT1dEx(1, 1, 3, shape="causal", stride=1, padding="same", bias=False)
+        conv_normal = ConvT1dEx(1, 1, 3,              stride=1, padding="same", bias=False)
+        conv_causal = ConvT1dEx(1, 1, 3, causal=True, stride=1, padding="same", bias=False)
         conv_normal.weight[0][0] = kernel
         conv_causal.weight[0][0] = kernel
 
@@ -67,8 +67,8 @@ def test_convt1dex_with_stride():
     with torch.no_grad():
         ipt = tensor([[[1., 2., 3.]]])
         kernel = nn.Parameter(tensor([2., 3., 5.]))
-        conv_normal = ConvT1dEx(1, 1, 3,                 stride=2, padding="scale", bias=False)
-        conv_causal = ConvT1dEx(1, 1, 3, shape="causal", stride=2, padding="scale", bias=False)
+        conv_normal = ConvT1dEx(1, 1, 3,              stride=2, padding="scale_drop", bias=False)
+        conv_causal = ConvT1dEx(1, 1, 3, causal=True, stride=2, padding="scale_drop", bias=False)
         conv_normal.weight[0][0] = kernel
         conv_causal.weight[0][0] = kernel
         o_normal = conv_normal(ipt)
@@ -105,8 +105,8 @@ def test_convt1dex_with_stride_dilation():
     with torch.no_grad():
         ipt = tensor([[[1., 2., 3.]]])
         kernel = nn.Parameter(tensor([2., 3., 5.]))
-        conv_normal = ConvT1dEx(1, 1, 3, stride=2,                 dilation=2, padding="scale", bias=False)
-        conv_causal = ConvT1dEx(1, 1, 3, stride=2, shape="causal", dilation=2, padding="scale", bias=False)
+        conv_normal = ConvT1dEx(1, 1, 3, stride=2,              dilation=2, padding="scale_drop", bias=False)
+        conv_causal = ConvT1dEx(1, 1, 3, stride=2, causal=True, dilation=2, padding="scale_drop", bias=False)
         conv_normal.weight[0][0] = kernel
         conv_causal.weight[0][0] = kernel
         o_normal = conv_normal(ipt)

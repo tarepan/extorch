@@ -26,8 +26,8 @@ def test_conv1dex_no_stride():
     with no_grad():
         i = tensor([[[1., 2., 3.]]])
         kernel = nn.Parameter(tensor([2., 3., 5.]))
-        conv_normal = Conv1dEx(1, 1, 3,                 stride=1, padding="same", bias=False)
-        conv_causal = Conv1dEx(1, 1, 3, shape="causal", stride=1, padding="same", bias=False)
+        conv_normal = Conv1dEx(1, 1, 3,              stride=1, padding="same", bias=False)
+        conv_causal = Conv1dEx(1, 1, 3, causal=True, stride=1, padding="same", bias=False)
         conv_normal.weight[0][0] = kernel
         conv_causal.weight[0][0] = kernel
 
@@ -59,8 +59,8 @@ def test_conv1dex_with_stride_input_even():
     with no_grad():
         i = tensor([[[1., 2., 3., 4.]]])
         kernel = nn.Parameter(tensor([2., 3., 5.]))
-        conv_normal = Conv1dEx(1, 1, 3,                 stride=2, padding="scale", bias=False)
-        conv_causal = Conv1dEx(1, 1, 3, shape="causal", stride=2, padding="scale", bias=False)
+        conv_normal = Conv1dEx(1, 1, 3,              stride=2, padding="scale_ceil", bias=False)
+        conv_causal = Conv1dEx(1, 1, 3, causal=True, stride=2, padding="scale_ceil", bias=False)
         conv_normal.weight[0][0] = kernel
         conv_causal.weight[0][0] = kernel
 
@@ -92,8 +92,8 @@ def test_conv1dex_with_stride_input_odd():
     with torch.no_grad():
         i = tensor([[[1., 2., 3.,]]])
         kernel = nn.Parameter(tensor([2., 3., 5.]))
-        conv_normal = Conv1dEx(1, 1, 3,                 stride=2, padding="scale", bias=False)
-        conv_causal = Conv1dEx(1, 1, 3, shape="causal", stride=2, padding="scale", bias=False)
+        conv_normal = Conv1dEx(1, 1, 3,              stride=2, padding="scale_ceil", bias=False)
+        conv_causal = Conv1dEx(1, 1, 3, causal=True, stride=2, padding="scale_ceil", bias=False)
         conv_normal.weight[0][0] = kernel
         conv_causal.weight[0][0] = kernel
 
@@ -104,37 +104,70 @@ def test_conv1dex_with_stride_input_odd():
         assert equal(o_causal, tensor([[[13., 13.,]]]))
 
 
-# def test_conv1dex_with_drop_last():
-#     """Conv1dEx should support causal convolution w/ stride, w/ drop last.
+def test_conv1dex_with_stride_input_odd_scale_drop():
+    """Conv1dEx should support causal convolution w/ stride, w/ odd length input, w/ scale_drop.
+    
+    [normal] k3s2, kernel (2,3,5)
+    ipt         -         1         2         3
+     --------------------------------------------------------
+                        0+3+10      -
+     --------------------------------------------------------
+    opt                  13
 
-#     [normal] kernel (2,3,5)
-#     ipt                  -         1         2         3
-#      -----------------------------------------------------------------
-#                                  0+3+10      -
-#      -----------------------------------------------------------------
-#     opt                           13
+    [causal] k3s2, kernel (2,3,5)
+    ipt         -         1         2         3
+     -------------------------------------------------------
+                               0+3+10
+     -------------------------------------------------------
+    opt                            13
+    """
 
-#     [causal] kernel (2,3,5)
-#     ipt        -         -         1         2         3
-#      ---------------------------------------------------
-#                                0+0+5         -    2+6+15
-#      ---------------------------------------------------
-#     opt                            5                  23
-#     """
+    with torch.no_grad():
+        i = tensor([[[1., 2., 3.,]]])
+        kernel = nn.Parameter(tensor([2., 3., 5.]))
+        conv_normal = Conv1dEx(1, 1, 3,              stride=2, padding="scale_drop", bias=False)
+        conv_causal = Conv1dEx(1, 1, 3, causal=True, stride=2, padding="scale_drop", bias=False)
+        conv_normal.weight[0][0] = kernel
+        conv_causal.weight[0][0] = kernel
 
-#     with torch.no_grad():
-#         i = tensor([[[1., 2., 3.,]]])
-#         kernel = nn.Parameter(tensor([2., 3., 5.]))
-#         conv_normal = Conv1dEx(1, 1, 3, stride=2, padding="scale", bias=False, causal=False, drop_last=True)
-#         conv_causal = Conv1dEx(1, 1, 3, stride=2, padding="scale", bias=False, causal=True,  drop_last=True)
-#         conv_normal.weight[0][0] = kernel
-#         conv_causal.weight[0][0] = kernel
+        o_normal = conv_normal(i)
+        o_causal = conv_causal(i)
 
-#         o_normal = conv_normal(i)
-#         o_causal = conv_causal(i)
+        assert equal(o_normal, tensor([[[13.,]]]))
+        assert equal(o_causal, tensor([[[13.,]]]))
 
-#         assert equal(o_normal, tensor([[[13., 13.,]]]))
-#         assert equal(o_causal, tensor([[[ 5., 23.,]]]))
+
+def test_conv1dex_with_large_stride():
+    """Conv1dEx should support causal convolution w/ large stride
+    
+    [normal] k5s3, kernel (1,2,3,5,3)
+    ipt         -         1         2         3         4         5         -         -
+     --------------------------------------------------------------------------------------
+                                0+2+6+15+12   -         -    3+8+15+0+0
+     --------------------------------------------------------------------------------------
+    opt                            35                            26
+
+    [causal]  k5s3, kernel (1,2,3,5,3)
+    ipt         -         -         1         2         3         4         5         -
+     --------------------------------------------------------------------------------------
+                                               0+0+3+10+9      -          - 2+6+12+25+0
+     --------------------------------------------------------------------------------------
+    opt                                                22                            45
+    """
+
+    with torch.no_grad():
+        i = tensor([[[1., 2., 3., 4., 5.]]])
+        kernel = nn.Parameter(tensor([1., 2., 3., 5., 3.]))
+        conv_normal = Conv1dEx(1, 1, 5,              stride=3, padding="scale_ceil", bias=False)
+        conv_causal = Conv1dEx(1, 1, 5, causal=True, stride=3, padding="scale_ceil", bias=False)
+        conv_normal.weight[0][0] = kernel
+        conv_causal.weight[0][0] = kernel
+
+        o_normal = conv_normal(i)
+        o_causal = conv_causal(i)
+
+        assert equal(o_normal, tensor([[[35., 26.,]]]))
+        assert equal(o_causal, tensor([[[22., 45.,]]]))
 
 
 def test_conv1dex_dilated():
@@ -159,8 +192,8 @@ def test_conv1dex_dilated():
     with torch.no_grad():
         i = tensor([[[1., 2., 3., 4., 5.,]]])
         kernel = torch.nn.Parameter(tensor([2., 3., 5.]))
-        conv_normal = Conv1dEx(1, 1, 3,                 dilation=2, padding="same", bias=False)
-        conv_causal = Conv1dEx(1, 1, 3, shape="causal", dilation=2, padding="same", bias=False)
+        conv_normal = Conv1dEx(1, 1, 3,              dilation=2, padding="same", bias=False)
+        conv_causal = Conv1dEx(1, 1, 3, causal=True, dilation=2, padding="same", bias=False)
         conv_normal.weight[0][0] = kernel
         conv_causal.weight[0][0] = kernel
 
@@ -193,8 +226,8 @@ def test_conv1dex_dilated_stride():
     with torch.no_grad():
         i = tensor([[[1., 2., 3., 4., 5.,]]])
         kernel = torch.nn.Parameter(tensor([2., 3., 5.]))
-        conv_normal = Conv1dEx(1, 1, 3,                 stride=2, dilation=2, padding="scale", bias=False)
-        conv_causal = Conv1dEx(1, 1, 3, shape="causal", stride=2, dilation=2, padding="scale", bias=False)
+        conv_normal = Conv1dEx(1, 1, 3,              stride=2, dilation=2, padding="scale_ceil", bias=False)
+        conv_causal = Conv1dEx(1, 1, 3, causal=True, stride=2, dilation=2, padding="scale_ceil", bias=False)
         conv_normal.weight[0][0] = kernel
         conv_causal.weight[0][0] = kernel
 
