@@ -37,17 +37,19 @@ def left_axis_right(length: int, axis: Literal["head", "center", "tail"]) -> tup
     raise RuntimeError(f"Not-supported axis position: {axis}")
 
 
-def kernel_lr(size: int, shape: Literal["delta", "causal"]) -> tuple[int, int]:
+def kernel_lr(size: int, shape: Literal["delta", "causal", "inv_causal"]) -> tuple[int, int]:
     """Calculate kernel_left and kernel_right size from kernel parameters.
     
     Args:
         size  - Kernel size
-        shape - Kernel shape
+        shape - Kernel shape, centered 'delta' | right-aligned 'causal' | left-aligned 'inv_causal'
     """
     if shape == "delta":
         return left_axis_right(size, "center")
     if shape == "causal":
         return left_axis_right(size, "tail")
+    if shape == "inv_causal":
+        return left_axis_right(size, "head")
 
     raise RuntimeError(f"Not-supported kernel shape: {shape}")
 
@@ -64,7 +66,7 @@ def stride_lr(size: int, align: Literal["head", "center", "tail"]) -> tuple[int,
 
 def padding_lr(
         kernel_size:  int,
-        kernel_shape: Literal["delta", "causal"],
+        kernel_shape: Literal["delta", "causal", "inv_causal"],
         stride_size:  int,
         stride_align: Literal["head", "center", "tail"],
         drop_last:    bool,

@@ -9,6 +9,10 @@ import torch.nn.functional as F
 from .padding import padding_lr
 
 
+# Design Notes:
+#    'drop_last when strided'-like behavior is not defined in PyTorch (PyTorch do not support auto-padding for strided Conv).
+#    We defined the 'scale' mode for this purpose.
+
 class Conv1dEx(nn.Conv1d):
     """Extended Conv1d which support cansal convolution.
 
@@ -35,6 +39,7 @@ class Conv1dEx(nn.Conv1d):
         """All arguments of `nn.Conv1d`, and new `causal` option:
 
         Args:
+            padding   - Padding mode ('scale' basically results in 'floor(L/s)' when `drop_last` or 'ceil(L/s)' when `not drop_last`, but there are some exceptions)
             shape     - Kernel shape, centerd 'delta' or right triangle 'causal'
             align     - Kernel axis alignment position in a frame
             drop_last - Whether to drop the last frame if kernel is not fulfilled in the frame. If False, pad for the frame.
