@@ -13,11 +13,6 @@ class Conv1dEx(nn.Conv1d):
     """Extended Conv1d which support cansal convolution.
 
     Causal + Stride + Dilation is supported.
-
-    Args:
-        shape     - Kernel shape, centerd 'delta' or right triangle 'causal'
-        align     - Kernel axis alignment position in a frame
-        drop_last - Whether to drop the last frame if kernel is not fulfilled in the frame. If False, pad for the frame.
     """
     def __init__(self,
         in_channels:  int,
@@ -37,7 +32,13 @@ class Conv1dEx(nn.Conv1d):
         align:        None | Literal["head", "center", "tail"] = None,
         drop_last:    bool = False,
     ):
-        """All arguments of `nn.Conv1d`, and new `causal` option"""
+        """All arguments of `nn.Conv1d`, and new `causal` option:
+
+        Args:
+            shape     - Kernel shape, centerd 'delta' or right triangle 'causal'
+            align     - Kernel axis alignment position in a frame
+            drop_last - Whether to drop the last frame if kernel is not fulfilled in the frame. If False, pad for the frame.
+        """
 
         # Deprecation warning
         if causal is not None:
@@ -66,6 +67,7 @@ class Conv1dEx(nn.Conv1d):
         if align is not None:
             _align = align
         else:
+            # TODO: non-causal's design note (why not 'center'?)
             _align = "tail" if _shape == "causal" else "head"
 
         # Validation
